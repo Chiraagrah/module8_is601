@@ -18,7 +18,7 @@ isort==5.13.2
 Jinja2==3.1.4
 MarkupSafe==3.0.2
 mccabe==0.7.0
-msgpack>=1.2.1
+msgpack>=1.2.3
 packaging==24.2
 platformdirs==4.3.6
 playwright==1.48.0
