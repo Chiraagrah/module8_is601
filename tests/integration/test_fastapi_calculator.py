@@ -1,5 +1,7 @@
 # tests/integration/test_fastapi_calculator.py
 
+import logging
+
 import pytest  # Import the pytest framework for writing and running tests
 from fastapi.testclient import TestClient  # Import TestClient for simulating API requests
 from main import app  # Import the FastAPI app instance from your main application file
@@ -128,7 +130,7 @@ def test_divide_api(client):
 # Test Function: test_divide_by_zero_api
 # ---------------------------------------------
 
-def test_divide_by_zero_api(client):
+def test_divide_by_zero_api(client, caplog):
     """
     Test the Division by Zero API Endpoint.
 
@@ -141,6 +143,7 @@ def test_divide_by_zero_api(client):
     3. Assert that the JSON response contains an 'error' field with the message "Cannot divide by zero!".
     """
     # Send a POST request to the '/divide' endpoint with JSON payload attempting division by zero
+    caplog.set_level(logging.INFO, logger="main")
     response = client.post('/divide', json={'a': 10, 'b': 0})
     
     # Assert that the response status code is 400 (Bad Request), indicating an error occurred
@@ -152,3 +155,49 @@ def test_divide_by_zero_api(client):
     # Assert that the 'error' field contains the correct error message
     assert "Cannot divide by zero!" in response.json()['error'], \
         f"Expected error message 'Cannot divide by zero!', got '{response.json()['error']}'"
+    messages = [record.getMessage() for record in caplog.records]
+    assert any("Divide Operation Error: Cannot divide by zero!" in message for message in messages)
+    assert any(
+        "Request completed method=POST path=/divide status_code=400" in message
+        for message in messages
+    )
+
+
+@pytest.mark.parametrize(
+    ("path", "operation", "expected_result"),
+    [
+        ("/add", "add", 15.0),
+        ("/subtract", "subtract", 5.0),
+        ("/multiply", "multiply", 50.0),
+        ("/divide", "divide", 2.0),
+    ],
+)
+def test_successful_operations_log_result_and_request(
+    client, caplog, path, operation, expected_result
+):
+    caplog.set_level(logging.INFO, logger="main")
+
+    response = client.post(path, json={"a": 10, "b": 5})
+
+    assert response.status_code == 200
+    assert response.json()["result"] == expected_result
+    messages = [record.getMessage() for record in caplog.records]
+    assert f"Operation {operation} completed result={expected_result}" in messages
+    assert any(
+        f"Request completed method=POST path={path} status_code=200" in message
+        for message in messages
+    )
+
+
+def test_validation_error_is_logged(client, caplog):
+    caplog.set_level(logging.INFO, logger="main")
+
+    response = client.post("/add", json={"a": "not a number", "b": 5})
+
+    assert response.status_code == 400
+    messages = [record.getMessage() for record in caplog.records]
+    assert any("ValidationError on /add" in message for message in messages)
+    assert any(
+        "Request completed method=POST path=/add status_code=400" in message
+        for message in messages
+    )

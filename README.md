@@ -214,6 +214,16 @@ docker run -it --rm <image-name>
 
 ---
 
+## Application Logging
+
+The application writes INFO-level logs to the console for completed requests,
+including the HTTP method, path, status code, and duration. Successful
+calculator operations also log their operation name and result. Validation
+failures, handled HTTP errors, and unhandled request exceptions are logged as
+errors.
+
+---
+
 # 📝 7. Submission Instructions
 
 After finishing your work:
